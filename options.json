@@ -1,0 +1,6 @@
+{
+	"dbfile": "datafile.db",
+	"logging": true,
+	"logfile": "log.txt",
+	"secret": "Wonderful"
+}

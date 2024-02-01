@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>login</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+	<!-- Compiled and minified JavaScript -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+	<div class="container">
+		<h5>Welcome to the Boat Manager</h5>
+		<div class="row">
+			
+			<div class="col s6">
+					
+				<form action="" method="POST" class="form-inline">
+					{{ Registerform.csrf  }}
+					<div class="input-field">
+						<label for="username_input">Your Username: </label>
+						<input type="text" name="username" id="username_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="name">Your full Name: </label>
+						<input type="text" name="name" id="name_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="email_input">Your Email: </label>
+						<input type="email" name="email" id="email_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="password_input">Your Password: </label>
+						<input type="password" name="password" id="password_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="password_confirmation_input">Your Password: </label>
+						<input type="password" name="password_confirmation" id="password_confirmation_input" class="form_control">
+					</div>
+
+					<div>
+						<button name="submit" type="submit" class="btn btn-primary" value="Register">Register </button>
+					</div>
+				</form>
+
+				<h5 id="error" style="color: red;">{{  Registration_error }}</h5>
+			</div>
+
+			<div class="col s6">
+					
+				<form action="" method="POST" class="form-inline">
+					{{ Loginform.csrf  }}
+					<div class="input-field">
+						<label for="username_input">Your Username: </label>
+						<input type="text" name="username" id="username_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="password_input">Your Password: </label>
+						<input type="password" name="password" id="password_input" class="form_control">
+					</div>
+
+					<div>
+						<button name="submit" type="submit" class="btn btn-primary" value="Login">Login </button>
+					</div>
+				</form>
+
+				<h5 id="error" style="color: red;">{{  Login_error }}</h5>
+			</div>
+
+			</div>
+		</div>
+
+		
+	</div>
+</body>
+</html>
