@@ -29,14 +29,14 @@ class BoatManager:
 		cursor = conn.cursor()
 		# Make Users table
 		cursor.execute("""CREATE TABLE Users (
-			UserName varChar(30) NOT NULL,
+			Username varChar(30) NOT NULL,
 			Email varChar(255) NOT NULL,
 			PasswordHash varChar(60) NOT NULL,
 			Salt varChar(6) NOT NULL,
 			Firstname varChar(30) NOT NULL,
 			Lastname varChar(30) NOT NULL,
 			IsAdmin Bool NOT NULL,   
-			Primary key (userName)
+			Primary key (Username)
 						);""")
 
 		# Make Boats table
@@ -47,19 +47,19 @@ class BoatManager:
 			Owner varChar(30),
 			Comments varChar(511),
 			Primary key (BoatID),
-			Foreign key (Owner) references Users(UserName)
+			Foreign key (Owner) references Users(Username)
 			);""")
 
 		# Make Bookings table
 		cursor.execute("""CREATE TABLE Bookings (
 			BookingID varChar(5) NOT NULL,
-			UserName varChar(30) NOT NULL,
+			Username varChar(30) NOT NULL,
 			BoatID varChar(4) NOT NULL,
 			Datetime Integer NOT NULL,
 			Length int NOT NULL,
 			CreationDate Integer NOT NULL,
 			Primary key (BookingID),
-			Foreign key (UserName) references Users(UserName),
+			Foreign key (Username) references Users(Username),
 			Foreign key (BoatID) references Boats(BoatID)
 			);""")
 
@@ -73,7 +73,7 @@ class BoatManager:
 			Severity Integer NOT NULL,
 			Resolved Boolean NOT NULL,
 			Primary key (IssueID),
-			Foreign key (Creator) references Users(UserName),
+			Foreign key (Creator) references Users(Username),
 			Foreign key (BoatID) references Boats(BoatID)
 			);""")
 
@@ -84,7 +84,7 @@ class BoatManager:
 		cursor = conn.cursor()
 		Users = []
 		Admins = []
-		UserData = cursor.execute("SELECT UserName, Email, PasswordHash, Salt, Firstname, Lastname, IsAdmin")
+		UserData = cursor.execute("SELECT Username, Email, PasswordHash, Salt, Firstname, Lastname, IsAdmin")
 		for user in UserData:
 			if user[6] == 0:
 				Users.append(User(user[0], user[1], user[2], user[3], (user[4], user[5])))
@@ -93,19 +93,19 @@ class BoatManager:
 
 		conn.close()
 
-	def newUser(self, userName, Email, PasswordHash, Salt, Name):
-		Users.append(User(userName, Email, PasswordHash, Salt, Name))
+	def newUser(self, Username, Email, PasswordHash, Salt, Name):
+		Users.append(User(Username, Email, PasswordHash, Salt, Name))
 		conn = sqlite3.connect(dbfile)
 		conn.execute(f"""
-			INSERT INTO Users (UserName, Email, PasswordHash, Salt, Firstname, Lastname, isAdmin)
+			INSERT INTO Users (Username, Email, PasswordHash, Salt, Firstname, Lastname, isAdmin)
 			VALUES ('{}', '', '','', '', '', )
 
 			""")
 
 
 class User():
-	def __init__(self, userName, Email, PasswordHash, Salt, Name):
-		self.__userName = userName
+	def __init__(self, Username, Email, PasswordHash, Salt, Name):
+		self.__Username = Username
 		self.__Email = Email
 		self.__PasswordHash = PasswordHash
 		self.__Salt = Salt
@@ -129,7 +129,7 @@ class User():
 		self.__IsAdmin = not self.__IsAdmin
 
 	def getUsername(self):
-		return self.__userName
+		return self.__Username
 
 	def getEmail(self):
 		return self.__Email

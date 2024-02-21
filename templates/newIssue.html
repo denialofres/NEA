@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Login</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+	<!-- Compiled and minified JavaScript -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+	<nav>
+		<div class="nav-wrapper">
+			<a href="#" class="brand-logo">&#160; Boat Manager</a>
+			<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li><a href="boats">Boats</a></li>
+				<li><a href="issues">Issues</a></li>
+				<li><a href="bookings">Bookings</a></li>
+				<li><a href="users">Users</a></li>
+				<li><a href="MyAccount">My Account</a></li>
+			</ul>
+		</div>
+	</nav>
+				
+
+	<div class="container">
+		<!--IssueID, Creator, BoatID, CreationDate, Severity, Details, FixDate, Resolved-->
+		<div class="row">
+			<div class="col s3"></div>
+			<div class="col s6">
+				<h5>New Issue</h5>
+
+				<form action="" method="POST" class="form-inline">
+					{{ newIssueForm.csrf  }}
+					<div class="input-field">
+						{{ newIssueForm.boat.label(class="active") }}
+ 						{{ newIssueForm.boat(class="browser-default") }}
+					</div>
+
+					<div class="input-field">
+						{{ newIssueForm.severity.label(class="active") }}
+ 						{{ newIssueForm.severity(class="browser-default") }}
+					</div>
+
+					<div class="input-field">
+						<label for="details_input">Details: </label>
+						<input type="text" name="details" id="details_input" class="form_control">
+					</div>
+
+
+					<div class="input-field">
+						<label for="fixDateInput">Fix date: </label>
+						<input type="date" name="fixDate" id="fixDateInput" class="form_control">
+					</div>
+
+					<div>
+						<button name="submit" type="submit" class="btn btn-primary" value="createBoat">Create Issue</button>
+					</div>
+				</form>				
+				<h5 id="error" style="color: red;">{{issueCreation_error}}</h5>
+				N.B fix date is the date you expect to be able to fix the issue by. If you aren't planning on fixing the issue or aren't sure when you'll be able to fix it by, just leave this blank
+
+				<div>
+				</div>
+			</div>
+		</div>
+		
+	</div>
+</body>
+</html>

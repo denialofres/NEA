@@ -3,13 +3,29 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>login</title>
+	<title>Login</title>
 	<!-- Compiled and minified CSS -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
+
 <body>
 	<!-- Compiled and minified JavaScript -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+	<nav>
+		<div class="nav-wrapper">
+			<a href="#" class="brand-logo">&#160; Boat Manager</a>
+			<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li><a href="boats">Boats</a></li>
+				<li><a href="issues">Issues</a></li>
+				<li><a href="bookings">Bookings</a></li>
+				<li><a href="users">Users</a></li>
+				<li><a href="MyAccount">My Account</a></li>
+			</ul>
+		</div>
+	</nav>
+				
 
 	<div class="container">
 		<h5>Welcome to the Boat Manager</h5>
@@ -20,8 +36,8 @@
 				<form action="" method="POST" class="form-inline">
 					{{ Registerform.csrf  }}
 					<div class="input-field">
-						<label for="username_input">Your Username: </label>
-						<input type="text" name="username" id="username_input" class="form_control">
+						<label for="Username_input">Your Username: </label>
+						<input type="text" name="Username" id="Username_input" class="form_control">
 					</div>
 
 					<div class="input-field">
@@ -40,16 +56,22 @@
 					</div>
 
 					<div class="input-field">
-						<label for="password_confirmation_input">Your Password: </label>
-						<input type="password" name="password_confirmation" id="password_confirmation_input" class="form_control">
+						<label for="password_confirmation_input">Confirm Password: </label>
+						<input type="password" name="passwordConfirm" id="password_confirmation_input" class="form_control">
 					</div>
 
 					<div>
 						<button name="submit" type="submit" class="btn btn-primary" value="Register">Register </button>
 					</div>
-				</form>
-
+				</form>				
 				<h5 id="error" style="color: red;">{{  Registration_error }}</h5>
+
+				<div>
+					Warning: Usernames can never be changed <br>
+					Usernames must be 3-30 chars, no spaces or punctuation except for underscores <br>
+					Names can use hyphens or apostrophes, but cannot contain any other punctuation <br>
+					Passwords must be at least 6 characters
+				</div>
 			</div>
 
 			<div class="col s6">
@@ -57,8 +79,8 @@
 				<form action="" method="POST" class="form-inline">
 					{{ Loginform.csrf  }}
 					<div class="input-field">
-						<label for="username_input">Your Username: </label>
-						<input type="text" name="username" id="username_input" class="form_control">
+						<label for="Username_input">Your Username: </label>
+						<input type="text" name="Username" id="Username_input" class="form_control">
 					</div>
 
 					<div class="input-field">
@@ -76,7 +98,6 @@
 
 			</div>
 		</div>
-
 		
 	</div>
 </body>

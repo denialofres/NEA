@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Users</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link rel="stylesheet" href= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"> 
+	<link href= "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> 
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script> 
+	<script src= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"> </script> 
+</head>
+
+<body class="container">
+	<!-- Compiled and minified JavaScript -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	<nav>
+		<div class="nav-wrapper">
+			<a href="#" class="brand-logo">&nbsp; Boat Manager</a>
+			<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li><a href="boats">Boats</a></li>
+				<li><a href="issues">Issues</a></li>
+				<li><a href="bookings">Bookings</a></li>
+				<li><a href="users">Users</a></li>
+				<li><a href="myAccount">My Account</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container">
+		<ul class="collection">
+			{% for item in collectionItems %}
+				<li class="collection-item avatar"> 
+					<i class="material-icons circle blue">{{item[0]}}</i>
+					<span class="title">{{item[1]}}</span>
+					<p>
+						{{item[2]}} <br>
+						{{item[3]}} 
+					</p>
+					<div class="secondary-content">
+						<a href="/{{item[4]}}User?account={{item[1]}}"><i class="material-icons blue-text">{{item[5]}}</i></a>
+						<a href="/editUser?account={{item[1]}}"><i class="material-icons green-text">create</i></a> <br>
+						<a href="/confirmedDeleteAccount?account={{item[1]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a>
+					</div>
+				</li>
+			{% endfor %}
+		</ul>
+		
+	</div>
+	
+</body>
+</html>

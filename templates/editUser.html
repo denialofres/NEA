@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>editUser</title>
+		<!-- Compiled and minified CSS -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+		<!-- Compiled and minified JavaScript -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+		<nav>
+		<div class="nav-wrapper">
+			<a href="#" class="brand-logo">&#160; Boat Manager</a>
+			<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li><a href="boats">Boats</a></li>
+				<li><a href="issues">Issues</a></li>
+				<li><a href="bookings">Bookings</a></li>
+				<li><a href="users">Users</a></li>
+				<li><a href="myAccount">My Account</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container">
+		<h5>Username: {{Username}}</h5>
+		<div class="row">
+			<div class="col s6">		
+				<form action="" method="POST" class="form-inline">
+					{{ EditDetailsForm.csrf }}
+
+					<div class="input-field">
+								<label for="Name">Your full Name: </label>
+								<input type="text" name="Name" id="name_input" class="form_control" placeholder="{{Name}}">
+							</div>
+
+							<div class="input-field">
+								<label for="email_input">Your Email: </label>
+								<input type="Email" name="Email" id="email_input" class="form_control" placeholder="{{Email}}">
+							</div>
+					<div>
+						<button name="Apply" type="submit" class="btn btn-primary" value="ChangeDetails">Apply changes</button>
+					</div>
+				</form>
+				<br>
+				N.B Usernames cannot be changed
+				<h5 id="error" style="color: red;">{{  Details_error }}</h5>
+			</div>
+			<div class="col s6">
+						
+				<form action="" method="POST" class="form-inline">
+					{{ EditPasswordForm.csrf }}
+
+					<div class="input-field">
+						<label for="old_password_input">Old Password: </label>
+						<input type="password" name="oldPassword" id="old_password_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="password_input">New Password: </label>
+						<input type="password" name="password" id="password_input" class="form_control">
+					</div>
+
+					<div class="input-field">
+						<label for="password_confirmation_input">Confirm New Password: </label>
+						<input type="password" name="passwordConfirm" id="password_confirmation_input" class="form_control">
+					</div>
+
+					<div>
+						<button name="Apply" type="submit" class="btn btn-primary" value="ChangePassword">Apply changes </button>
+					</div>
+				</form>
+				<h5 id="error" style="color: red;">{{  Password_error }}</h5>
+				N.B admins can leave the "Old Password" field blank when changing account passwords
+				</div>
+		</div>
+	</div>
+
+</body>
+<!--set default values for name and email-->
+<script>
+    document.addEventListener('DOMContentLoaded', function(event) { 
+        document.getElementById('name_input').value = '{{Name}}';
+    });
+    document.addEventListener('DOMContentLoaded', function(event) { 
+        document.getElementById('email_input').value = '{{Email}}';
+    });
+</script>
+</html>

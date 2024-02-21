@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>myAccount</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link rel="stylesheet" href= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"> 
+	<link href= "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> 
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script> 
+	<script src= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"> </script> 
+</head>
+
+<body class="container">
+		<!-- Compiled and minified JavaScript -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+		<nav>
+		<div class="nav-wrapper">
+			<a href="#" class="brand-logo">&#160; Boat Manager</a>
+			<ul id="nav-mobile" class="right hide-on-med-and-down">
+				<li><a href="boats">Boats</a></li>
+				<li><a href="issues">Issues</a></li>
+				<li><a href="bookings">Bookings</a></li>
+				<li><a href="users">Users</a></li>
+				<li><a href="myAccount">My Account</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container">
+		<ul class="collection">
+			<li class="collection-item">Username = {{user}}</li>
+			<li class="collection-item">Name = {{Name}}</li>
+			<li class="collection-item">Email = {{Email}}</li>
+		</ul>
+		<div style="display:flex;">
+			<a href="/editUser?account={{user}}" class="waves-effect waves-light btn">Edit details</a>
+			&nbsp &nbsp
+			<form action="" method="POST" class="form-inline">
+				{{ logoutForm.csrf }}
+				<button name="submit" type="submit" class="btn btn-primary" value="logout">Log Out</button>
+			</form>	
+			&nbsp &nbsp
+			<a class="btn btn-primary modal-trigger" href="#accDelConfirmationModal">Delete account</a>
+	
+			</div>
+		</div> 
+	</div>
+	<div id="accDelConfirmationModal" class="modal">
+		<div class="modal-content">
+			<h4>Are you sure you want to delete your account</h4>
+			<p>This action is not reversible</p>
+		</div>
+		<div style="display:flex">
+			<div class="modal-footer">
+				<a href="" class="modal-close waves-effect waves-green btn-flat">
+					Cancel
+				</a>
+				<a href="/confirmedDeleteAccount?account={{user}}" class="modal-close waves-effect waves-green btn-flat">
+					Delete account
+				</a>
+			</div>
+		</div>
+		&nbsp
+		<script> 
+			$(document).ready(function () { 
+				$('.modal').modal(); 
+			}) 
+		</script>
+	</div>
+	
+</body>
+</html>

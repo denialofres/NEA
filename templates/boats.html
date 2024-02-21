@@ -35,41 +35,34 @@
 		<ul class="collection">
 			{% for item in collectionItems %}
 				<li class="collection-item avatar"> 
-					<i class="material-icons circle blue">report</i>
+					<i class="material-icons circle blue">sailing</i>
 					<span class="title"><b>{{item[0]}}</b></span>
 					<p>
-						Boat: {{item[1]}} ({{item[2]}}) <br>
-						Severity: {{item[5]}}/5 <br>
-						Details: {{item[6]}}
+						{{item[1]}} <br>
+						{{item[2]}} 
 					</p>
 					<div class="secondary-content">
-						<a href="/editIssue?issue={{item[0]}}"><i class="material-icons green-text">create</i></a> 
-						<a href="/deleteIssue?issue={{item[0]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a><br>
-						<a href="/detailsModalIssue{{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">description</i></a>
-						<a href="/markIssue{{item[10]}}?issue={{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">{{item[9]}}</i></a>
+						<a href="/editBoat?BoatID={{item[0]}}"><i class="material-icons green-text">create</i></a>
+						<a href="/deleteBoat?BoatID={{item[0]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a> <br>
+						<a href="/commentsModalBoat{{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">description</i></a>
 					</div>
 				</li>
 			{% endfor %}
 		</ul>
-		{% for issue in collectionItems %}
-			<div id="detailsModalIssue{{issue[0]}}" class="modal">
+		{% for item in collectionItems %}
+			<div id="commentsModalBoat{{item[0]}}" class="modal">
 				<div class="modal-content">
 					<ul class="collection">
-						<!--IssueID, Creator, BoatID, CreationDate, Severity, Details, FixDate, Resolved-->
-						<li class="collection-item">Issue number: {{issue[0]}}</li>
-						<li class="collection-item">BoatID: {{issue[1]}}</li>
-						<li class="collection-item">BoatName: {{issue[2]}}</li>
-						<li class="collection-item">Creator: {{issue[3]}}</li>
-						<li class="collection-item">Created: {{issue[4]}}</li>
-						<li class="collection-item">Severity: {{issue[5]}}/5</li>
-						<li class="collection-item">Details: {{issue[6]}}</li>
-						<li class="collection-item">Estimated fix date: {{issue[7]}}</li>
-						<li class="collection-item">Resolved: {{issue[8]}}</li>
+					  <li class="collection-item">Boat number: {{item[0]}}</li>
+					  <li class="collection-item">Name: {{item[1]}}</li>
+					  <li class="collection-item">Class: {{item[2]}}</li>
+					  <li class="collection-item">Owner: {{item[4]}}</li>
+					  <li class="collection-item">Comments: {{item[3]}}</li>
 					</ul>
 				</div>
 			</div>
 		{% endfor %}
-		<a href="/newIssue" class="waves-effect waves-green btn">New Issue</a>
+		<a href="/newBoat" class="waves-effect waves-green btn">New Boat</a>
 	</div>
 <script> 
 	$(document).ready(function () { 
