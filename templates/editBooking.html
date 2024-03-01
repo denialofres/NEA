@@ -3,7 +3,7 @@
 <head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Edit Issue</title>
+		<title>Edit Booking</title>
 		<!-- Compiled and minified CSS -->
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -27,33 +27,30 @@
 		</div>
 	</nav>
 	<div class="container">
-		<h5>IssueID = {{IssueID}}</h5>
+		<h5>BookingID = {{BookingID}}</h5>
 		<div class="row">
 			<div class="col s3"></div>
 			<div class="col s6">		
 				<form action="" method="POST" class="form-inline">
-					{{ editIssueForm.csrf  }}
+					{{ editBookingForm.csrf  }}
 					<div class="input-field">
-						{{ editIssueForm.boat.label(class="active") }}
- 						{{ editIssueForm.boat(class="browser-default") }}
+						{{ editBookingForm.boat.label(class="active") }}
+ 						{{ editBookingForm.boat(class="browser-default") }}
 					</div>
 
-					<div class="input-field">
-						{{ editIssueForm.severity.label(class="active") }}
- 						{{ editIssueForm.severity(class="browser-default") }}
-					</div>
-
-					<div class="input-field">
-						<label for="details_input">Details: </label>
-						<input type="text" name="details" id="details_input" class="form_control" placeholder="{{Details}}">
-					</div>
 					<div class="input-field">
 						&nbsp
-						<label for="fixDate_input">Fix date: </label>
-						<input type="date" name="fixDate" id="fixDate_input" class="form_control" placeholder={{FixDate}}>
+						<label for="startTime_input">Datetime: </label>
+						<input type="text" onfocus="(this.type='datetime-local')" name="startTime" id="startTime_input" class="form_control" placeholder={{dateTime}}>
 					</div>
+
+					<div class="input-field">
+						<label for="length_input">Length (mins): </label>
+						<input type="number" name="length" id="length_input" class="form_control" placeholder="{{length}}">
+					</div>
+
 					<div>
-						<button name="submit" type="submit" class="btn btn-primary" placeholder="createBoat">Update Values</button>
+						<button name="submit" type="submit" class="btn btn-primary" placeholder="createBooking">Update Values</button>
 					</div>
 				</form>
 				<br>
@@ -66,10 +63,13 @@
 <!--set default values for name and email-->
 <script>
     document.addEventListener('DOMContentLoaded', function(event) { 
-        document.getElementById('details_input').value = '{{Details}}';
+        document.getElementById('length_input').value = '{{Name}}';
     });
     document.addEventListener('DOMContentLoaded', function(event) { 
-        document.getElementById('fixDate_input').value = '{{FixDate}}';
+        document.getElementById('startTime_input').value = '{{dateTime}}';
+    });
+	document.addEventListener('DOMContentLoaded', function(event) { 
+        document.getElementById('length_input').value = '{{length}}';
     });
 </script>
 </html>

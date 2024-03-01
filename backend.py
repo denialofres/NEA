@@ -6,6 +6,7 @@ import string as stringModule
 import re
 import time
 from datetime import datetime
+import random
 
 def Main():
 	# import settings
@@ -36,6 +37,15 @@ class BoatManager():
 		self.__UniversalIssueEditing = self.__options["UniversalIssueEditing"]
 		self.__UniversalBookingEditing = self.__options["UniversalBookingEditing"]
 		self.__MaxBookingLength = self.__options["MaxBookingLength"]
+		self.__sysAdminUsername = self.__options["sysAdminUsername"]
+		self.__SysAdefaults = self.__options["sysAdminDefaultDetails"]
+		SysAdefaultPwordHash = self.__options["sysAdminDefaultPasswordHash"]
+
+		if self.findUserIndex(self.__sysAdminUsername) != -1:
+			self.giveAdminPerms(self.__sysAdminUsername)
+		elif self.findAdminIndex(self.__sysAdminUsername) == -1:
+			self.newUser(self.__sysAdminUsername, self.__SysAdefaults[0], self.__SysAdefaults[1], SysAdefaultPwordHash, self.__SysAdefaults[2])
+			self.giveAdminPerms(self.__sysAdminUsername)
 
 		print("BoatManager Initialized")
 
@@ -77,10 +87,9 @@ class BoatManager():
 		# Make Users table
 		cursor.execute("""CREATE TABLE Users (
 			Username varChar(30) NOT NULL,
-			Firstname varChar(30) NOT NULL,
-			Lastname varChar(30) NOT NULL,
+			Name varChar(30) NOT NULL,
 			Email varChar(255) NOT NULL,
-			PasswordHash varChar(64) NOT NULL,
+			PasswordHash varChar(255) NOT NULL,
 			Salt varChar(6) NOT NULL,
 			IsAdmin Bool NOT NULL,   
 			Primary key (Username)
@@ -95,19 +104,6 @@ class BoatManager():
 			Comments varChar(511),
 			Primary key (BoatID),
 			Foreign key (Owner) references Users(Username)
-			);""")
-
-		# Make Bookings table
-		cursor.execute("""CREATE TABLE Bookings (
-			BookingID varChar(5) NOT NULL,
-			Username varChar(30) NOT NULL,
-			BoatID varChar(4) NOT NULL,
-			Datetime Integer NOT NULL,
-			Length int NOT NULL,
-			CreationDate Integer NOT NULL,
-			Primary key (BookingID),
-			Foreign key (Username) references Users(Username),
-			Foreign key (BoatID) references Boats(BoatID)
 			);""")
 
 		# Make Issues table
@@ -125,6 +121,19 @@ class BoatManager():
 			Foreign key (BoatID) references Boats(BoatID)
 			);""")
 
+		# Make Bookings table
+		cursor.execute("""CREATE TABLE Bookings (
+			BookingID varChar(5) NOT NULL,
+			Username varChar(30) NOT NULL,
+			BoatID varChar(4) NOT NULL,
+			startTime Integer NOT NULL,
+			Length int NOT NULL,
+			CreationDate Integer NOT NULL,
+			Primary key (BookingID),
+			Foreign key (Username) references Users(Username),
+			Foreign key (BoatID) references Boats(BoatID)
+			);""")
+
 		conn.commit()
 		conn.close()
 
@@ -138,12 +147,12 @@ class BoatManager():
 		self.__Issues = []
 		self.__Bookings = []
 
-		UserData = cursor.execute("SELECT Username, Firstname, Lastname, Email, PasswordHash, Salt, IsAdmin FROM Users")
+		UserData = cursor.execute("SELECT Username, Name, Email, PasswordHash, Salt, IsAdmin FROM Users")
 		for user in UserData:
-			if user[6] == 0:
-				self.__Users.append(User(user[0], (user[1], user[2]), user[3], user[4], user[5]))
+			if user[5] == 0:
+				self.__Users.append(User(user[0], user[1], user[2], user[3], user[4]))
 			else:
-				self.__Admins.append(Admin(user[0], (user[1], user[2]), user[3], user[4], user[5]))
+				self.__Admins.append(Admin(user[0], user[1], user[2], user[3], user[4]))
 
 		BoatData = cursor.execute("SELECT BoatID, BoatName, BoatType, Owner, Comments FROM Boats")
 		for boat in BoatData:
@@ -153,9 +162,9 @@ class BoatManager():
 		for issue in IssueData:
 			self.__Issues.append(Issue(issue[0], issue[1], issue[2], issue[3], issue[4], issue[5], issue[6], issue[7]))
 
-		BookingData = cursor.execute("SELECT BookingID, Username, BoatID, Datetime, Length, CreationDate FROM Bookings")
+		BookingData = cursor.execute("SELECT BookingID, Username, BoatID, startTime, Length, CreationDate FROM Bookings")
 		for booking in BookingData:
-			self.__Issues.append(Booking(issue[0], issue[1], issue[2], issue[3], issue[4], issue[5], issue[6], issue[7]))
+			self.__Bookings.append(Booking(booking[0], booking[1], booking[2], booking[3], booking[4], booking[5]))
 
 		conn.close()
 
@@ -250,12 +259,21 @@ class BoatManager():
 		return self.__Bookings
 
 
+	def validatePasswordInput(self, password, passwordConfirm):
+		if password != passwordConfirm:
+			return "Passwords don't match"
+		if len(password) < 6:
+			return "Password is too short"
+		if len(password) > 30:
+			return "Password is too long"
+		return True
+
 	def validateUser(self, Username, Name, Email, PasswordHash, Salt):
 		if len(Username)<3 or len(Username)>30:
 			self.log(f"Failed to add User - wrong length of Username")
 			return "Invalid input, Username must be between 1 and 30 chars"
 
-		disallowedChars = [punc for punc in stringModule.punctuation if punc not in ("'", "-")]
+		disallowedChars = [punc for punc in stringModule.punctuation if punc not in ("'", "-", "_")]
 		disallowedChars.append(" ")
 
 		if any(p in Username for p in disallowedChars):
@@ -272,14 +290,16 @@ class BoatManager():
 		Name = list(Name)
 		disallowedChars = [punc for punc in stringModule.punctuation if punc not in ("'", "-")]
 
-		NameLength = 0
-		for word in Name:
-			if any(p in word for p in disallowedChars):
-				self.log(f"Failed to add User - banned character in first name")
+		if any(p in Name for p in disallowedChars):
+				self.log(f"Failed to add User - banned character in name")
 				return "Invalid input, banned character used in name"
-			NameLength += len(word)
 
-		if NameLength>30:
+		if len(Name) == 0:
+			self.log(f"Failed to add User - name not entered")
+			return "Invalid input, name is a required field"
+
+
+		if len(Name)>30:
 			self.log(f"Failed to add User - name is too long")
 			return "Invalid input, name is too long"
 
@@ -335,8 +355,8 @@ class BoatManager():
 
 		return 1
 
-	def validateBooking(self, BookingID, Username, BoatID, Datetime, Length, CreationDate):
-		if self.findUserIndex(Username) == -1 and self.findAdminIndex(Owner) == -1:
+	def validateBooking(self, BookingID, Username, BoatID, startTime, Length, CreationDate):
+		if self.findUserIndex(Username) == -1 and self.findAdminIndex(Username) == -1:
 			self.log(f"Failed to add Booking - Username doesn't exist")
 			return "Username doesn't exist - internal error"
 
@@ -345,19 +365,23 @@ class BoatManager():
 			return "Boat doesn't exist - internal error"
 
 		if self.__MaxBookingLength != False:
-			if Length>self.__MaxBookingLength:
+			if int(Length)>self.__MaxBookingLength:
 				self.log(f"Failed to add Booking - Booking exceeds max length")
 				return f"Booking exceeds max length of {self.__MaxBookingLength} minutes"
+		if int(Length) < 1:
+			self.log("Failbed to add Booking - Booking Length is less than 1")
+			return f"Booking length cannot be 0 or negative"
 
-		Finish = Datetime + Length*60
+		Finish = int(startTime) + int(Length)*60
 
 		for booking in self.__Bookings: # check the booking won't overlap with any others
 			if booking.getBoatID() == BoatID:
-				if booking.getDatetime()>Finish or (booking.getDatetime()+booking.getLength()*60)<Datetime:
+				if int(booking.getStartTime())>Finish or (int(booking.getStartTime())+int(booking.getLength())*60)<int(startTime):
 					pass # Times do not overlap
 				else:
-					self.log(f"Failed to add Booking - Booking overlaps with existing booking {booking.getBookingID()}")
-					return f"Booking overlaps with other booking from {datetime.fromtimestamp(tbooking.getDatetime()).isoformat()} to {datetime.fromtimestamp(booking.getDatetime()+booking.getLength()*60).isoformat()}"
+					if booking.getBookingID() != BookingID:
+						self.log(f"Failed to add Booking - Booking overlaps with existing booking {booking.getBookingID()}")
+						return f"Booking overlaps with other booking from {datetime.fromtimestamp(booking.getStartTime()).isoformat()} to {datetime.fromtimestamp(booking.getStartTime()+booking.getLength()*60).isoformat()}"
 
 		return 1
 
@@ -371,25 +395,19 @@ class BoatManager():
 		if validation != 1:
 			return validation		
 
-		# Add user to self.__Users and database
+		# Add user to self.__Users
 		self.__Users.append(User(Username, Name, Email, PasswordHash, Salt))
 
-
-		fName = Name[0]
-		lName = " ".join(Name[1:])
-
+		# Replaces apostrophes with " for sql use
 		Username = Username.replace("'", "''")
 		Salt = Salt.replace("'", "''")
-		fName = fName.replace("'", "''")
-		lName = lName.replace("'", "''")
+		Name = Name.replace("'", "''")
 
+		# Add user to Database
 		conn = sqlite3.connect(self.__dbfile)
-		sqlStatement = f"""
-			INSERT INTO Users (Username,  Firstname, Lastname, Email, PasswordHash, Salt, isAdmin)
-			VALUES ('{Username}',  '{fName}', '{lName}', '{Email}', '{PasswordHash}','{Salt}', False)
-			"""
-		print(sqlStatement)
-		conn.execute(sqlStatement)
+		conn.execute(f"""INSERT INTO Users (Username,  Name, Email, PasswordHash, Salt, isAdmin)
+			VALUES ('{Username}',  '{Name}', '{Email}', '{PasswordHash}','{Salt}', False)
+			""")
 		conn.commit()
 		conn.close() 
 
@@ -405,14 +423,17 @@ class BoatManager():
 		if validation != 1:
 			return validation
 
+
+		# Add boat to self.__Boats and database
+		self.__Boats.append(Boat(BoatID, BoatName, BoatType, Owner, Comments))
+
+		# Replaces apostrophes with " for sql use
 		BoatName = BoatName.replace("'", "''")
 		BoatType = BoatType.replace("'", "''")
 		Owner = Owner.replace("'", "''")
 		Comments = Comments.replace("'", "''")
 
-		# Add boat to self.__Boats and database
-		self.__Boats.append(Boat(BoatID, BoatName, BoatType, Owner, Comments))
-
+		# Add to datatbase
 		conn = sqlite3.connect(self.__dbfile)
 		conn.execute(f"""
 			INSERT INTO Boats (BoatID, BoatName, BoatType, Owner, Comments)
@@ -432,15 +453,17 @@ class BoatManager():
 		validation = self.validateIssue(IssueID, Creator, BoatID, CreationDate, Details, FixDate, Severity, Resolved)
 		if validation != 1:
 			return validation
-
-		if Creator != None:
-			Creator = Creator.replace("'", "''")
-		if Details != None:
-			Details = Details.replace("'", "''")
+	
 
 		# Add issue to self.__Issues and database
 		self.__Issues.append(Issue(IssueID, Creator, BoatID, CreationDate, Details, FixDate, Severity, Resolved))
 
+		# Replaces apostrophes with " for sql use
+		Creator = Creator.replace("'", "''")
+		if Details != None:
+			Details = Details.replace("'", "''")
+
+		# Add to database
 		conn = sqlite3.connect(self.__dbfile)
 		conn.execute(f"""
 			INSERT INTO Issues (IssueID, Creator, BoatID, CreationDate, Details, FixDate, Severity, Resolved)
@@ -452,25 +475,27 @@ class BoatManager():
 		self.log(f"added issue {IssueID}")
 		return 1
 
-	def newBooking(self, BookingID, Username, BoatID, Datetime, Length, CreationDate=int(time.time())):
-		if self.findIssueIndex(IssueID) != -1:
+	def newBooking(self, BookingID, Username, BoatID, startTime, Length, CreationDate=int(time.time())):
+		if self.findBookingIndex(BookingID) != -1:
 			self.log(f"Failed to add Booking - BookingID already in use")
 			return "BookingID in use - internal error"
 
-		validation = self.validateBooking(Username, Name, Email, PasswordHash, Salt)
+		validation = self.validateBooking(BookingID, Username, BoatID, startTime, Length, CreationDate)
 		if validation != 1:
 			return validation
 
 
-		Username = Username.replace("'", "''")
-		
 		# Add booking to self.__Bookings and database
-		self.__Bookings.append(Booking(BookingID, Username, BoatID, Datetime, Length, CreationDate))
+		self.__Bookings.append(Booking(BookingID, Username, BoatID, startTime, Length, CreationDate))
 
+		# Replaces apostrophes with " for sql use
+		Username = Username.replace("'", "''")
+
+		# Add to database
 		conn = sqlite3.connect(self.__dbfile)
 		conn.execute(f"""
-			INSERT INTO Booking (BookingID, Username, BoatID, Datetime, Length, CreationDate)
-			VALUES ('{BookingID}', '{Username}', '{BoatID}','{Datetime}', '{Length}', '{CreationDate}')
+			INSERT INTO Bookings (BookingID, Username, BoatID, startTime, Length, CreationDate)
+			VALUES ('{BookingID}', '{Username}', '{BoatID}','{startTime}', '{Length}', '{CreationDate}')
 			""")
 		conn.commit()
 		conn.close()
@@ -480,6 +505,20 @@ class BoatManager():
 
 	
 	def deleteUser(self, Username):
+		for booking in self.__Bookings:
+			if booking.getUsername() == Username:
+				self.deleteBooking(booking.getBookingID())
+
+		for issue in self.__Issues:
+			if issue.getCreator() == Username:
+				attr = issue.getAllAttributes()
+				self.editIssue(attr[0], self.__sysAdminUsername, attr[2], attr[3], attr[4], attr[5], attr[6], attr[7])
+
+		for boat in self.__Boats:
+			if boat.getOwner() == Username:
+				attr = boat.getAllAttributes()
+				self.editBoat(attr[0], attr[1], attr[2], self.__sysAdminUsername, attr[4])
+
 		for user in self.__Users:
 			if user.getUsername() == Username:
 				prevDetails = user.getAllAttributes()
@@ -491,6 +530,7 @@ class BoatManager():
 				self.__Admins.remove(user)
 
 		conn = sqlite3.connect(self.__dbfile)
+		Username = Username.replace("'", "''")
 		conn.execute(f"""
 			DELETE FROM Users WHERE Username = '{Username}'
 			""")
@@ -549,7 +589,7 @@ class BoatManager():
 
 		conn = sqlite3.connect(self.__dbfile)
 		conn.execute(f"""
-			DELETE FROM Boats WHERE BookingID = '{BookingID}'
+			DELETE FROM Bookings WHERE BookingID = '{BookingID}'
 			""")
 		conn.commit()
 		conn.close()
@@ -582,14 +622,19 @@ class BoatManager():
 		self.newIssue(IssueID, Creator, BoatID, CreationDate, Details, FixDate, Severity, Resolved)
 		return 1
 
-	def editBooking(self, BookingID, Username, BoatID, Datetime, Length, CreationDate):
-		validation = self.validateBooking(BookingID, Username, BoatID, Datetime, Length, CreationDate)
+	def editBooking(self, BookingID, Username, BoatID, startTime, Length, CreationDate):
+		validation = self.validateBooking(BookingID, Username, BoatID, startTime, Length, CreationDate)
 		if validation != 1:
 			return validation
 		self.deleteBooking(BookingID)
-		self.newBooking(BookingID, Username, BoatID, Datetime, Length, CreationDate)
+		self.newBooking(BookingID, Username, BoatID, startTime, Length, CreationDate)
 		return 1
 
+
+	def generateSalt(self):
+		chars = stringModule.ascii_uppercase + stringModule.ascii_lowercase + stringModule.digits
+		salt = ''.join(random.SystemRandom().choice(stringModule.ascii_uppercase + stringModule.digits) for _ in range(6))
+		return salt
 
 	def getNewBoatID(self):
 		count = 1
@@ -613,11 +658,49 @@ class BoatManager():
 		count = 1
 		strcount = ("00000"+str(count))[-5:]
 		while True:
+			print("l616", strcount)
+			print("l617", self.__Bookings)
 			if self.findBookingIndex(strcount) == -1:
+				print("l618", self.findBookingIndex(strcount))
 				return strcount
 			count += 1
 			strcount = ("00000"+str(count))[-5:]
 
+
+	def sortBoats(self):
+		self.__Boats = self.mergeSortBoats(self.__Boats)
+
+	def mergeSortBoats(self, data):
+		if len(data) == 1 or len(data) == 0:
+			return data
+
+		midindex = int(len(data)//2)
+		upper = data[midindex:]
+		upper = self.mergeSortBoats(upper)
+
+		lower = data[:midindex]
+		lower = self.mergeSortBoats(lower)
+
+		i, j, k = 0, 0, 0
+		while i<len(lower) and j<len(upper):
+			if int(lower[i].getID())<=int(upper[j].getID()):
+				data[k] = lower[i]
+				i += 1
+			else:
+				data[k] = upper[j]
+				j += 1
+			k += 1
+
+		while i<len(lower):
+			data[k] = lower[i]
+			i += 1
+			k += 1
+
+		while j<len(upper):
+			data[k] = upper[j]
+			j += 1
+			k += 1
+		return data
 
 	def sortIssues(self):
 		resolved = []
@@ -638,6 +721,9 @@ class BoatManager():
 		
 		self.__Issues = issueList
 
+	def sortBookings(self):
+		self.__Bookings.sort(reverse=False, key=(lambda booking: int(booking.getStartTime())))
+
 
 	def giveAdminPerms(self, Username):
 		index = self.findUserIndex(Username)
@@ -648,6 +734,7 @@ class BoatManager():
 		self.__Users.pop(index)
 
 		conn = sqlite3.connect(self.__dbfile)
+		Username = Username.replace("'", "''")
 		conn.execute(f"""
 			UPDATE Users
 			SET IsAdmin = True
@@ -665,6 +752,7 @@ class BoatManager():
 		self.__Admins.pop(index)
 
 		conn = sqlite3.connect(self.__dbfile)
+		Username = Username.replace("'", "''")
 		conn.execute(f"""
 			UPDATE Users
 			SET IsAdmin = False
@@ -682,16 +770,6 @@ class User():
 		self.__Salt = Salt
 		self.__Name = Name
 
-
-	def editEmail(self, newEmail):
-		self.__Email = newEmail
-
-	def editPasswordHash(self, newPassword):
-		newPasswordHash = BoatManager.hash(newPassword, self.__Salt)
-		self.__PasswordHash = newPasswordHash
-
-	def editName(self, newName):
-		self.__Name = newName
 
 	def getUsername(self):
 		return self.__Username
@@ -733,17 +811,8 @@ class Boat():
 		self.__Comments = Comments
 
 
-	def editName(self, newName):
-		self.__BoatName = newName
-
-	def editType(self, newType):
-		self.__BoatType = newType
-
-	def editOwner(self, newOwner):
-		self.__Owner = newOwner
-
-	def editComments(self, newComments):
-		self.__Comments = newComments
+	def getIsAdmin(self):
+		return False
 
 	def getID(self):
 		return self.__BoatID
@@ -776,18 +845,6 @@ class Issue():
 		self.__Resolved = Resolved
 
 
-	def editSeverity(self, newSeverity):
-		self.__Severity = newSeverity
-
-	def editDetails(self, newDetails):
-		self.__Details = newDetails
-
-	def editFixDate(self, newFixDate):
-		self.__FixDate = newFixDate
-
-	def editResolved(self, newResolved):
-		self.__Resolved = newResolved
-
 	def getIssueID(self):
 		return self.__IssueID
 
@@ -813,29 +870,18 @@ class Issue():
 		return self.__Resolved
 
 	def getAllAttributes(self):
-		return [self.__IssueID, self.__Creator, self.__BoatID, self.__CreationDate, self.__Severity, self.__Details, self.__FixDate, self.__Resolved]
+		return [self.__IssueID, self.__Creator, self.__BoatID, self.__CreationDate, self.__Details, self.__FixDate, self.__Severity, self.__Resolved]
 
 
 class Booking():
-	def __init__(self, BookingID, Username, BoatID, Datetime, Length, CreationDate):
+	def __init__(self, BookingID, Username, BoatID, startTime, Length, CreationDate):
 		self.__BookingID = BookingID
 		self.__Username = Username
 		self.__BoatID = BoatID
-		self.__Datetime = Datetime
+		self.__startTime = startTime
 		self.__Length = Length
 		self.__CreationDate = CreationDate
 
-	def editUsername(self, newUsername):
-		self.__Username = newUsername
-
-	def editBoatID(self, newBoatID):
-		self.__BoatID = newBoatID
-
-	def editDatetime(self, newDatetime):
-		self.__Datetime = newDatetime
-
-	def editLength(self, newLength):
-		self._Length= newLength
 
 	def getBookingID(self):
 		return self.__BookingID
@@ -846,8 +892,8 @@ class Booking():
 	def getBoatID(self):
 		return self.__BoatID
 
-	def getDatetime(self):
-		return self.__Datetime
+	def getStartTime(self):
+		return self.__startTime
 
 	def getLength(self):
 		return self.__Length
@@ -856,7 +902,7 @@ class Booking():
 		return self.__CreationDate
 
 	def getAllAttributes(self):
-		return [self.__BookingID, self.__Username, self.__BoatID, self.__Datetime, self.__Length, self.__CreationDate]
+		return [self.__BookingID, self.__Username, self.__BoatID, self.__startTime, self.__Length, self.__CreationDate]
 
 
 if __name__ == "__main__":

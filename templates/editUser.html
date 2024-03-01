@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>editUser</title>
-		<!-- Compiled and minified CSS -->
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit user</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<!-- Compiled and minified JS -->
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script>
 </head>
 
-<body>
-		<!-- Compiled and minified JavaScript -->
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<body class="container">
 
-		<nav>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+	<nav>
 		<div class="nav-wrapper">
-			<a href="#" class="brand-logo">&#160; Boat Manager</a>
+			<a href="/myAccount" class="brand-logo">&nbsp; Boat Manager</a>
 			<ul id="nav-mobile" class="right hide-on-med-and-down">
 				<li><a href="boats">Boats</a></li>
 				<li><a href="issues">Issues</a></li>
@@ -31,7 +33,6 @@
 			<div class="col s6">		
 				<form action="" method="POST" class="form-inline">
 					{{ EditDetailsForm.csrf }}
-
 					<div class="input-field">
 								<label for="Name">Your full Name: </label>
 								<input type="text" name="Name" id="name_input" class="form_control" placeholder="{{Name}}">
@@ -46,7 +47,8 @@
 					</div>
 				</form>
 				<br>
-				N.B Usernames cannot be changed
+				N.B Usernames cannot be changed <br>
+				Apostrophes may not show up within the fields.
 				<h5 id="error" style="color: red;">{{  Details_error }}</h5>
 			</div>
 			<div class="col s6">

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>New boat</title>
+	<title>New booking</title>
 	<!-- Compiled and minified CSS -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -25,47 +25,37 @@
 				<li><a href="myAccount">My Account</a></li>
 			</ul>
 		</div>
-	</nav>	
+	</nav>				
 
 	<div class="container">
 		<!--IssueID, Creator, BoatID, CreationDate, Severity, Details, FixDate, Resolved-->
 		<div class="row">
 			<div class="col s3"></div>
 			<div class="col s6">
-				<h5>New Issue</h5>
-
+				<h5>New Booking</h5>
 				<form action="" method="POST" class="form-inline">
-					{{ newIssueForm.csrf  }}
+					{{ newBookingForm.csrf  }}
 					<div class="input-field">
-						{{ newIssueForm.boat.label(class="active") }}
- 						{{ newIssueForm.boat(class="browser-default") }}
+						{{ newBookingForm.boat.label(class="active") }}
+ 						{{ newBookingForm.boat(class="browser-default") }}
 					</div>
 
 					<div class="input-field">
-						{{ newIssueForm.severity.label(class="active") }}
- 						{{ newIssueForm.severity(class="browser-default") }}
+						&nbsp
+						<label for="startTime">Start time: </label>
+						<input type="datetime-local" name="startTime" id="startTimeInput" class="form_control">
 					</div>
 
 					<div class="input-field">
-						<label for="details_input">Details: </label>
-						<input type="text" name="details" id="details_input" class="form_control">
-					</div>
-
-
-					<div class="input-field">
-						<label for="fixDateInput">Fix date: </label>
-						<input type="date" name="fixDate" id="fixDateInput" class="form_control">
+						<label for="lengthInput">Length (mins): </label>
+						<input type="number" name="length" id="lengthInput" class="form_control">
 					</div>
 
 					<div>
-						<button name="submit" type="submit" class="btn btn-primary" value="createIssue">Create Issue</button>
+						<button name="submit" type="submit" class="btn btn-primary" value="creatBooking">Create Booking</button>
 					</div>
 				</form>				
-				<h5 id="error" style="color: red;">{{issueCreation_error}}</h5>
-				N.B fix date is the date you expect to be able to fix the issue by. If you aren't planning on fixing the issue or aren't sure when you'll be able to fix it by, just leave this blank
-
-				<div>
-				</div>
+				<h5 id="error" style="color: red;">{{bookingCreation_error}}</h5>
 			</div>
 		</div>
 		

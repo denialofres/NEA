@@ -1,0 +1,56 @@
+1.	User accounts
+	1a Create new user account
+	1b Store passwords as a salted hash
+	1c Allow admin management of user accounts
+	1d Password reset through admins or by user
+2. User reporting of maintenance issues
+	2a Allow creation of new issues
+	2b Describe severity and details of issue
+	2c Allow users to edit issues as they develop
+3. Bosun tracking of boat issues
+	3a Show list of boats
+	3b Highlight if issues are repeating
+	3c Allow sorting or filtering by severity or boat type affected
+	3d Allow bosun to edit issues or mark them as solved
+4. Allow creation and management of the boat list
+	4a Create/delete boats
+	4b Edit details of boats
+	4c Admins should be able to decide whether or not non-admin users can do this
+5. User booking of sailing boats
+	5a User creation of new bookings
+	5b User shown existing bookings for boats or for dates
+	5c User can filter and sort by maintenance issues and availability
+	5d Admins can overwrite existing bookings
+
+
+getBookingID()
+getUsername()
+getBoatID()
+getStartTime()
+getLength()
+getCreationDate()
+getAllAttributes()
+
+flask --app server run
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit boat</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Edit boat</title>
+	<!-- Compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link rel="stylesheet" href= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"> 
+	<link href= "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> 
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script> 
+	<script src= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"> </script>
+</head>

@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField
+from wtforms.validators import InputRequired
 import sqlite3
 import json
 import backend
@@ -19,67 +20,11 @@ app.config["SECRET_KEY"] = "Unicorns"
 
 login_history = []
 
-global boatmanager
-boatmanager = backend.BoatManager("options.json")
-
 #get dbfile
-optionsFile = "options.json"
-with open(optionsFile, "r") as optionsFileObject:
-	options = json.load(optionsFileObject)
+OPTIONSFILE = "options.json"
 
-DBFILE = options["dbfile"]
-
-#check dbfile exists
-try:
-	with open(DBFILE) as DB:
-		pass
-except FileNotFoundError:
-	print(f"dbfile ({DBFILE}) not found")
-	quit()
-
-
-def generateSalt():
-	chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
-	salt = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
-	return salt
-
-def hash(Password, Salt):
-	hash = 14
-	for i in list(Salt)+list(Password):
-		hash = (hash * 65599) + ord(i)
-	return str(hash)
-
-def getSalt(Username):
-	conn = sqlite3.connect(DBFILE)
-	cursor = conn.cursor() 
-
-	cursor.execute(f"SELECT Salt FROM Users WHERE Username = '{Username}'")
-	for item in cursor:
-		salt = item[0]
-	conn.close()
-	return salt
-
-def checkUsernameExists(Username):
-	conn = sqlite3.connect(DBFILE)
-	cursor = conn.cursor() 
-
-	UserHashData = cursor.execute(f"SELECT Username FROM Users WHERE Username = '{Username}'")
-	numUsers = len(cursor.fetchall())
-
-	conn.close()
-
-	if numUsers > 0:
-		return True
-	return False
-
-def validatePassword(password, passwordConfirm):
-	if password != passwordConfirm:
-		print(password, passwordConfirm)
-		return "Passwords don't match"
-	if len(password) < 6:
-		return "Password is too short"
-	return True
-
+global boatmanager
+boatmanager = backend.BoatManager(OPTIONSFILE)
 
 
 class LoginForm(FlaskForm):
@@ -107,6 +52,7 @@ class EditUserPasswordForm(FlaskForm):
 	passwordConfirm = StringField("password_confirmation")
 	Apply = SubmitField("Apply")
 
+
 class boatDetailsForm(FlaskForm):
 	boatName = StringField("BoatName")
 	boatType = StringField("BoatType")
@@ -114,11 +60,34 @@ class boatDetailsForm(FlaskForm):
 	comments = StringField("Comments")
 	LoginSubmit = SubmitField("createBoat")
 
+class filterBoatsForm(FlaskForm):
+	boatClass = SelectField()
+	owner = SelectField()
+	LoginSubmit = SubmitField("applyFilters")
+
+
 class issueDetailsForm(FlaskForm):
 	boat = SelectField()
 	severity = SelectField(choices=[(0,"0"), (1,"1"), (2,"2"), (3,"3"), (4,"4"), (5,"5")])
 	details = StringField()
 	fixDate = StringField()
+
+class issuesFilterForm(FlaskForm):
+	minSeverity = SelectField(choices=[["0","0"], ["1","1"], ["2","2"], ["3","3"], ["4","4"], ["5","5"]])
+	resolved = SelectField(choices=[("0", "Unresolved"), ("1", "Resolved"), ("01", "All")])
+	LoginSubmit = SubmitField("applyFilters")
+
+
+class bookingDetailsForm(FlaskForm):
+	boat = SelectField()
+	startTime = StringField()
+	length = StringField()
+
+class filterBookingsForm(FlaskForm):
+	boatClass = SelectField()
+	bookingHolder = SelectField()
+	date = StringField()
+
 
 class buttonForm(FlaskForm):
 	submit = SubmitField("submit")
@@ -128,12 +97,15 @@ class buttonForm(FlaskForm):
 def login():
 	login_form = LoginForm()
 	register_form = RegisterForm()
-	if login_form.is_submitted():
-		if request.form["submit"] == "Login":
+
+	if login_form.is_submitted(): 
+		# This will be True if either form is submitted
+		if request.form["submit"] == "Login": 
+			# This is only if the login form has been submitted
 			print("Login form submitted")
 			Username = login_form.Username.data
-			if checkUsernameExists(Username):
-				passwordHash = hash(login_form.password.data, getSalt(Username))
+			if boatmanager.findUserIndex(Username) != -1 or boatmanager.findAdminIndex(Username) != -1:
+				passwordHash = boatmanager.hash(login_form.password.data, boatmanager.getUser(Username).getSalt())
 				User = boatmanager.getUser(Username)
 				if User.getPasswordHash() == passwordHash:
 					print("Succesful login\n")
@@ -147,18 +119,18 @@ def login():
 				return render_template("login.html", Loginform=login_form, Registerform=register_form, Login_error="Username not found")
 
 		elif request.form["submit"] == "Register":
+			# This is only if the registration form has been submitted
 			print("Register form submitted")
 			Username = register_form.Username.data
 			name = register_form.name.data
-			name = name.split()
 			email = register_form.email.data
 			password = register_form.password.data
 			passwordConfirm = register_form.passwordConfirm.data
 
-			validation = validatePassword(password, passwordConfirm)
+			validation = boatmanager.validatePasswordInput(password, passwordConfirm)
 
-			salt = generateSalt()
-			pwHash = hash(password, salt)
+			salt = boatmanager.generateSalt()
+			pwHash = boatmanager.hash(password, salt)
 
 			if validation != True:
 				return render_template("login.html", Loginform=login_form, Registerform=register_form, Registration_error=validation)
@@ -169,7 +141,7 @@ def login():
 			session["Username"] = Username
 			return redirect("/myAccount")
 
-	#for the first call, when it's the browser getting the webpage
+	# For the first call, when it's the browser getting the webpage
 	return render_template("login.html",  Loginform=login_form, Registerform=register_form)
 
 @app.route("/users", methods=["GET", "POST"])
@@ -181,14 +153,27 @@ def users():
 	if boatmanager.findAdminIndex(Username) == -1:
 		return redirect("/forbidden")
 
-	collectionItems = []
-
-	for admin in boatmanager.getAdmins():
-		collectionItems.append(["grade", admin.getUsername(), " ".join(admin.getName()), admin.getEmail(), "downgrade", "remove"])
-
-
-	for user in boatmanager.getUsers():
-		collectionItems.append(["person", user.getUsername(), " ".join(user.getName()), user.getEmail(), "upgrade", "add"])
+	collectionItems = [] # This is a list of users to be shown
+	if "filter" in request.args:
+		# For this page, filters are in the query URL
+		if request.args.get("filter") == "Admins":
+			for admin in boatmanager.getAdmins():
+				collectionItems.append(["grade", admin.getUsername(), admin.getName(), admin.getEmail(), "downgrade", "remove"])
+		elif request.args.get("filter") == "Users":
+			for user in boatmanager.getUsers():
+				collectionItems.append(["person", user.getUsername(), user.getName(), user.getEmail(), "upgrade", "add"])
+		else:
+			# All Users and Admins are shown
+			for admin in boatmanager.getAdmins():
+				collectionItems.append(["grade", admin.getUsername(), admin.getName(), admin.getEmail(), "downgrade", "remove"])
+			for user in boatmanager.getUsers():
+				collectionItems.append(["person", user.getUsername(), user.getName(), user.getEmail(), "upgrade", "add"])
+	else:
+		# If no filters are specified in the query
+		for admin in boatmanager.getAdmins():
+			collectionItems.append(["grade", admin.getUsername(), admin.getName(), admin.getEmail(), "downgrade", "remove"])
+		for user in boatmanager.getUsers():
+			collectionItems.append(["person", user.getUsername(), user.getName(), user.getEmail(), "upgrade", "add"])
 
 	return render_template("users.html", collectionItems=collectionItems)
 
@@ -197,7 +182,6 @@ def editUser():
 	if "Username" not in session:
 		return redirect("/login")
 	Username = session["Username"]
-
 	account = request.args.get("account")
 
 	if boatmanager.findAdminIndex(Username) == -1 and Username != account:
@@ -205,51 +189,62 @@ def editUser():
 
 	DetailsForm = EditUserDetailsForm()
 	PwordForm = EditUserPasswordForm()
+
 	if DetailsForm.is_submitted():
+		# This is if either form is submitted
 		if request.form["Apply"] == "ChangeDetails":
+			# This is only if the details editing form has been submitted
 			print("New user details submitted")
 			user = boatmanager.getUser(account)
 			attributes = user.getAllAttributes() # [Username, Name, Email, PasswordHash, Salt]
 			[account, Name, Email, PasswordHash, Salt] = attributes
 			newEmail = DetailsForm.Email.data
-			newName = DetailsForm.Name.data.split(" ")
+			newName = DetailsForm.Name.data
+
 			validation = boatmanager.editUser(attributes[0], newName, newEmail, attributes[3], attributes[4])
 			if validation != 1:
-				return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error=validation, Password_error="")
+				# I.e. An error of some sort has ocurred
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error=validation, Password_error="")
 			else:
-				return render_template('editUser.html', Username=account, Name=" ".join(newName), Email=newEmail, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="Succesfully updated values", Password_error="")
+				return render_template('editUser.html', Username=account, Name=newName, Email=newEmail, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="Succesfully updated values", Password_error="")
 
 		elif request.form["Apply"] == "ChangePassword":
+			# This is only if they have attempted to change the password
 			print("user attempt to change password submitted")
 			attributes = boatmanager.getUser(account).getAllAttributes() # [Username, Name, Email, PasswordHash, Salt]
 			[account, Name, Email, PasswordHash, Salt] = attributes
+
+			account = account.replace("'", "")
+			Name = Name.replace("'", "")
 
 			oldPassword = PwordForm.oldPassword.data
 			newpassword = PwordForm.password.data
 			newpasswordConfirm = PwordForm.passwordConfirm.data
 
-			if hash(oldPassword, Salt) != PasswordHash and boatmanager.findAdminIndex(Username) == -1:
-				return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="Incorrect old password")
+			if boatmanager.hash(oldPassword, Salt) != PasswordHash and boatmanager.findAdminIndex(Username) == -1:
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="Incorrect old password")
+
+			if boatmanager.validatePasswordInput(newpassword, newpasswordConfirm) != True:
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error=boatmanager.validatePasswordInput(newpassword, newpasswordConfirm))
 
 			if newpassword != newpasswordConfirm:
-				return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="passwords don't match")
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="passwords don't match")
 			
-			newPasswordHash = hash(newpassword, Salt)
+			newPasswordHash = boatmanager.hash(newpassword, Salt)
 			validation = boatmanager.editUser(account, Name, Email, newPasswordHash, Salt)
 
 			if validation != 1:
-				return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error=validation)
+				# I.e. An error of some sort has ocurred
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error=validation)
 			else:
-				return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="Succesfully updated values")
+				return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="Succesfully updated values")
 
 	User = boatmanager.getUser(account)
 	Name = User.getName()
 	Email = User.getEmail()
-	return render_template('editUser.html', Username=account, Name=" ".join(Name), Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="")
-
-@app.route("/deleteAccount", methods=["GET", "POST"])
-def deleteAccount():
-	pass
+	account = account.replace("'", "")
+	Name = Name.replace("'", "")
+	return render_template('editUser.html', Username=account, Name=Name, Email=Email, EditDetailsForm=DetailsForm, EditPasswordForm=PwordForm, Details_error="", Password_error="")
 
 @app.route("/confirmedDeleteAccount", methods=["GET", "POST"])
 def confirmedDeleteAccount():
@@ -257,6 +252,8 @@ def confirmedDeleteAccount():
 		return redirect("/login")
 	Username = session["Username"]
 	account = request.args.get("account")
+	if account == boatmanager.getOptions()["sysAdminUsername"]:
+		return redirect("/forbidden")
 	if account == Username:
 		boatmanager.deleteUser(account)
 		return redirect("/login")
@@ -307,9 +304,9 @@ def myAccount():
 			session.pop("Username")
 			return redirect("/login")
 		elif request.form["submit"] == "delAcc":
-			return render_template('myAccount.html', user=Username, Email=UserObject.getEmail(), Name=" ".join(UserObject.getName()), logoutForm=logout_form, delAccForm=delAcc_form)
+			return render_template('myAccount.html', user=Username, Email=UserObject.getEmail(), Name=UserObject.getName(), logoutForm=logout_form, delAccForm=delAcc_form)
 	UserObject = boatmanager.getUser(Username)
-	return render_template('myAccount.html', user=Username, Email=UserObject.getEmail(), Name=" ".join(UserObject.getName()), logoutForm=logout_form, delAccForm=delAcc_form)
+	return render_template('myAccount.html', user=Username, Email=UserObject.getEmail(), Name=UserObject.getName(), logoutForm=logout_form, delAccForm=delAcc_form)
 
 
 
@@ -320,15 +317,49 @@ def boats():
 	Username = session["Username"]
 	collectionItems = []
 
-	for boat in boatmanager.getBoats():
-		collectionItems.append([boat.getID(), boat.getName(), boat.getType(), boat.getComments(), boat.getOwner()])
+	boatmanager.sortBoats()
+	userList = ["All"] + [user.getUsername() for user in (boatmanager.getAdmins() + boatmanager.getUsers())]
+	classList = ["All"] + [boat.getType() for boat in boatmanager.getBoats()]
+
+
+
+	boatFilterForm = filterBoatsForm()
+	boatFilterForm.owner.choices = userList
+	boatFilterForm.boatClass.choices = classList
+
+	if boatFilterForm.is_submitted():
+		potentialBoats = []
+		ownerFilter = boatFilterForm.owner.data
+		boatClassFilter = boatFilterForm.boatClass.data
+
+		for boat in boatmanager.getBoats():
+			Owner = boatmanager.getUser(boat.getOwner())
+			potentialBoats.append([boat.getID(), boat.getName(), boat.getType(), boat.getComments(), Owner.getUsername(), Owner.getName()])
+
+		if ownerFilter != "All":
+			for item in potentialBoats:
+				if item[4] != ownerFilter:
+					potentialBoats.remove(item)
+
+		if boatClassFilter != "All":
+			for item in potentialBoats:
+				if item[2] != boatClassFilter:
+					print("l375", item[2], boatClassFilter)
+					potentialBoats.remove(item)
+
+		collectionItems = potentialBoats
+
+	else:
+		for boat in boatmanager.getBoats():
+			Owner = boatmanager.getUser(boat.getOwner())
+			collectionItems.append([boat.getID(), boat.getName(), boat.getType(), boat.getComments(), Owner.getUsername(), Owner.getName()])
 
 	message=""
 	if "msg" in request.args:
 		if request.args["msg"] == "boatCreationSuccess":
 			message = "Succesfully created boat"
 
-	return render_template('boats.html', user=Username, message=message, collectionItems=collectionItems)
+	return render_template('boats.html', user=Username, message=message, collectionItems=collectionItems, boatFilterForm=boatFilterForm)
 
 @app.route("/newBoat", methods=["GET", "POST"])
 def newBoat():
@@ -342,10 +373,10 @@ def newBoat():
 	accountsList = []
 
 	for account in boatmanager.getUsers():
-		accountsList.append([account.getUsername(), (account.getUsername() + " (" + ' '.join(account.getName()) + ")")])
+		accountsList.append([account.getUsername(), (account.getUsername() + " (" + account.getName() + ")")])
 
 	for account in boatmanager.getAdmins():
-		accountsList.append([account.getUsername(), (account.getUsername() + " (" + ' '.join(account.getName()) + ")")])
+		accountsList.append([account.getUsername(), (account.getUsername() + " (" + account.getName() + ")")])
 
 	newBoatForm = boatDetailsForm()
 	newBoatForm.owner.choices=accountsList
@@ -365,22 +396,6 @@ def newBoat():
 
 	return render_template("newBoat.html", newBoatForm=newBoatForm)
 
-@app.route("/deleteBoat", methods=["GET", "POST"])
-def deleteBoat():
-	pass
-
-@app.route("/confirmedDeleteBoat", methods=["GET", "POST"])
-def confirmedDeleteBoat():
-	if "Username" not in session:
-		return redirect("/login")
-	Username = session["Username"]
-	BoatID = request.args.get("BoatID")
-	if boatmanager.getOptions()["UniversalBoatEditing"] or boatmanager.getAdmin(Username) != -1:
-		boatmanager.deleteBoat(BoatID)
-		return redirect("/boats")
-	else:
-		return redirect("/forbidden")
-
 @app.route("/editBoat", methods=["GET", "POST"])
 def editBoat():
 	if "Username" not in session:
@@ -394,12 +409,18 @@ def editBoat():
 
 	accountsList = []
 	for account in boatmanager.getUsers():
-		accountsList.append([account.getUsername(), (account.getUsername() + " (" + ' '.join(account.getName()) + ")")])
+		accountsList.append([account.getUsername(), (account.getUsername() + " (" + account.getName() + ")")])
 	for account in boatmanager.getAdmins():
-		accountsList.append([account.getUsername(), (account.getUsername() + " (" + ' '.join(account.getName()) + ")")])
+		accountsList.append([account.getUsername(), (account.getUsername() + " (" + account.getName() + ")")])
 
 	editBoatForm = boatDetailsForm()
 	editBoatForm.owner.choices = accountsList
+
+	boat = boatmanager.getBoat(BoatID)
+	boatName = boat.getName()
+	boatType = boat.getType()
+	owner = boat.getOwner()
+	comments = boat.getComments()
 
 	if editBoatForm.is_submitted():
 		newBoatName = editBoatForm.boatName.data
@@ -412,13 +433,18 @@ def editBoat():
 			return render_template("editBoat.html", message=boatEdit, editBoatForm=editBoatForm, boatID=BoatID, boatName=boatName, boatType=boatType, owner=owner, comments=comments)
 		return render_template("editBoat.html", message="Successfully upated values", editBoatForm=editBoatForm, boatID=BoatID, boatName=newBoatName, boatType=newBoatType, owner=newOwner, comments=newComments)
 
-	boat = boatmanager.getBoat(BoatID)
-	boatName = boat.getName()
-	boatType = boat.getType()
-	owner = boat.getOwner()
-	comments = boat.getComments()
-
 	return render_template("editBoat.html", editBoatForm=editBoatForm, BoatID=BoatID, boatName=boatName, boatType=boatType, owner=owner, comments=comments)
+
+@app.route("/deleteBoat", methods=["GET", "POST"])
+def deleteBoat():
+	if "Username" not in session:
+		return redirect("/login")
+	Username = session["Username"]
+	BoatID = request.args.get("boat")
+	if boatmanager.getOptions()["UniversalBoatEditing"] or boatmanager.getAdmin(Username) != -1:
+		return redirect("/boats")
+	else:
+		return redirect("/forbidden")
 
 
 
@@ -427,11 +453,142 @@ def bookings():
 	if "Username" not in session:
 		return redirect("/login")
 	Username = session["Username"]
+	collectionItems = []
 
-	print(Username)
-	if Username:
-		return render_template('home.html', user=Username)
+	if not boatmanager.getOptions()["AllowBookings"]:
+		return redirect("/forbidden")
 
+	boatmanager.sortBookings()
+	for booking in boatmanager.getBookings():
+		# BookingID, Username, BoatID, BoatName, Date, startTime, endTime, length
+		if int(booking.getStartTime()) + int(booking.getLength())*60 > datetime.now().timestamp():
+			boatName = boatmanager.getBoat(booking.getBoatID()).getName()
+			boatType = boatmanager.getBoat(booking.getBoatID()).getType()
+			startTime = datetime.fromtimestamp(int(booking.getStartTime())).isoformat()
+			print("l498", startTime, datetime.fromtimestamp(int(booking.getStartTime())))
+			endTime = datetime.fromtimestamp(int(booking.getStartTime())+int(booking.getLength())*60).isoformat()
+
+			User = boatmanager.getUser(booking.getUsername())
+			collectionItems.append([booking.getBookingID(), User.getUsername(), User.getName(), booking.getBoatID(), 
+				boatName, startTime[:10], startTime[-8:-3], endTime[-8:-3], booking.getLength(), boatType])
+
+	userList = ["All"] + [user.getUsername() for user in (boatmanager.getAdmins() + boatmanager.getUsers())]
+	classList = ["All"] + [boat.getType() for boat in boatmanager.getBoats()]
+	bookingFilterForm = filterBookingsForm()
+
+	bookingFilterForm.bookingHolder.choices = userList
+	bookingFilterForm.boatClass.choices = classList
+
+	if bookingFilterForm.is_submitted():
+		if bookingFilterForm.boatClass.data != "All":
+			for item in collectionItems:
+				if item[9] != bookingFilterForm.boatClass.data:
+					collectionItems.remove(item)
+		if bookingFilterForm.bookingHolder.data != "All":
+			for item in collectionItems:
+				if item[1] != bookingFilterForm.bookingHolder.data:
+					collectionItems.remove(item)
+		if bookingFilterForm.date.data != "":
+			for item in collectionItems:
+				if item[5] != bookingFilterForm.date.data:
+						collectionItems.remove(item)
+	
+
+	message=""
+	if "msg" in request.args:
+		if request.args["msg"] == "bookingCreationSuccess":
+			message = "Succesfully created booking"
+
+	return render_template('bookings.html', message=message, collectionItems=collectionItems, bookingFilterForm=bookingFilterForm)
+
+@app.route("/newBooking", methods=["GET", "POST"])
+def newBooking():
+	if "Username" not in session:
+		return redirect("/login")
+	Username = session["Username"]
+
+	if not boatmanager.getOptions()["AllowBookings"]:
+		return redirect("/forbidden")
+
+	boatsList = []
+
+	for boat in boatmanager.getBoats():
+		boatsList.append([boat.getID(), (boat.getID() + " (" + boat.getName() + ")")])
+
+	newBookingForm = bookingDetailsForm()
+	newBookingForm.boat.choices=boatsList
+
+	if newBookingForm.is_submitted():
+		print("New boat being created")
+		boatID = newBookingForm.boat.data
+		startTime = newBookingForm.startTime.data
+		if startTime == None:
+			return render_template("newBooking.html", newBookingForm=newBookingForm, bookingCreation_error="start time is required")
+		length = newBookingForm.length.data
+		if length == None:
+			return render_template("newBooking.html", newBookingForm=newBookingForm, bookingCreation_error="length is required")
+		bookingID = boatmanager.getNewBookingID()
+
+		startUnixTime = datetime.fromisoformat(startTime).timestamp()
+
+		bookingCreation = boatmanager.newBooking(bookingID, Username, boatID, startUnixTime, length)
+		if bookingCreation != 1:
+			return render_template("newBooking.html", newBookingForm=newBookingForm, bookingCreation_error=bookingCreation)
+		return redirect("/bookings?msg=bookingCreationSuccess")
+
+	return render_template("newBooking.html", newBookingForm=newBookingForm)
+
+@app.route("/editBooking", methods=["GET", "POST"])
+def editBooking():
+	if "Username" not in session:
+		return redirect("/login")
+
+	Username = session["Username"]
+	BookingID = request.args.get("booking")
+
+	if not boatmanager.getOptions()["UniversalBookingEditing"] and boatmanager.getAdmin(Username) == -1 and boatmanager.getBooking(BookingID).getName() != Username:
+		return redirect("/forbidden")
+
+	boatsList = []
+	for boat in boatmanager.getBoats():
+		boatsList.append([boat.getID(), (boat.getID() + " (" + boat.getName() + ")")])
+
+	editBookingForm = bookingDetailsForm()
+	editBookingForm.boat.choices = boatsList
+
+	booking = boatmanager.getBooking(BookingID)
+	bookingHolder = booking.getUsername()
+	creationDate = booking.getCreationDate()
+	bookingID = booking.getBookingID()
+	boatID = booking.getBoatID()
+	startDateTime = datetime.fromtimestamp(int(booking.getStartTime())).isoformat()
+	length = booking.getLength()
+
+	if editBookingForm.is_submitted():
+		newBoatID = editBookingForm.boat.data
+		newStartDateTime = editBookingForm.startTime.data
+		newLength = editBookingForm.length.data
+
+		bookingEdit = boatmanager.editBooking(BookingID, bookingHolder, newBoatID, datetime.fromisoformat(newStartDateTime).timestamp(), newLength, creationDate)
+		if bookingEdit != 1:
+			return render_template("editBooking.html", message=bookingEdit, editBookingForm=editBookingForm, BookingID=BookingID, boatID=boatID, dateTime=startDateTime, length=length)
+		return render_template("editBooking.html", message="Successfully upated values", editBookingForm=editBookingForm, BookingID=BookingID, boatID=newBoatID, dateTime=newStartDateTime, length=newLength)
+
+	return render_template("editBooking.html", message="", editBookingForm=editBookingForm, BookingID=BookingID, boatID=boatID, dateTime=startDateTime, length=length)
+
+
+
+@app.route("/deleteBooking", methods=["GET", "POST"])
+def deleteBooking():
+	if not boatmanager.getOptions()["AllowBookings"]:
+		return redirect("/forbidden")
+	if "Username" not in session:
+		return redirect("/login")
+	Username = session["Username"]
+	BookingID = request.args.get("booking")
+	boatmanager.deleteBooking(BookingID)
+	return redirect("/bookings")
+	
 
 
 @app.route("/issues", methods=["GET", "POST"])
@@ -440,6 +597,8 @@ def issues():
 		return redirect("/login")
 	Username = session["Username"]
 	collectionItems = []
+
+	filterIssuesForm = issuesFilterForm()
 
 	boatmanager.sortIssues()
 	for issue in boatmanager.getIssues():
@@ -451,21 +610,37 @@ def issues():
 			icon = "check_box"
 			resolved = "Unresolved"
 
-		if issue.getFixDate() == None:
+		if issue.getFixDate() == "":
 			fixDate = "Not set"
 		else:
 			fixDate = issue.getFixDate()
 		readableCreationDate = str(datetime.fromtimestamp(issue.getCreationDate()).replace(microsecond=0).isoformat(" "))
-		collectionItems.append( [issue.getIssueID(), issue.getBoatID(), boatmanager.getBoat(issue.getBoatID()).getName(), issue.getCreator(), 
+		boat = boatmanager.getBoat(issue.getBoatID())
+		creator = boatmanager.getUser(issue.getCreator())
+		collectionItems.append([issue.getIssueID(), issue.getBoatID(), boat.getName(), boat.getType(), creator.getUsername(), creator.getName(), 
 			readableCreationDate, str(issue.getSeverity()), issue.getDetails(), fixDate, str(issue.getResolved()), icon, resolved])
 
 
+	if filterIssuesForm.is_submitted():
+		# sort according to the filters applied
+		resolvedFilter = filterIssuesForm.resolved.data
+		for issue in collectionItems:
+			if int(issue[7]) < int(filterIssuesForm.minSeverity.data) and issue[10] not in resolvedFilter:
+				# Issue number, BoatID, BoatName, Creator, creationdate, severity, details, fixdate, resolved
+				collectionItems.remove(issue)
+
+	else:
+		# only show unresolved issues
+		for issue in collectionItems:
+			if issue[10] == "1":
+				collectionItems.remove(issue)
+
 	message=""
 	if "msg" in request.args:
-		if request.args["msg"] == "boatCreationSuccess":
-			message = "Succesfully created boat"
+		if request.args["msg"] == "issueCreationSuccess":
+			message = "Succesfully created issue"
 
-	return render_template('issues.html', message=message, collectionItems=collectionItems)
+	return render_template('issues.html', message=message, collectionItems=collectionItems, filterIssuesForm=filterIssuesForm)
 
 @app.route("/newIssue", methods=["GET", "POST"])
 def newIssue():
@@ -489,7 +664,8 @@ def newIssue():
 		fixDate = newIssueForm.fixDate.data
 		issueID = boatmanager.getNewIssueID()
 
-		issueCreation = boatmanager.newIssue(issueID, Username, boatID, Details=details, FixDate=fixDate, Severity=severity, Resolved=False)
+
+		issueCreation = boatmanager.newIssue(issueID, Username, boatID, Details=details, FixDate=fixDate, Severity=severity, Resolved=0)
 		if issueCreation != 1:
 			return render_template("newIssue.html", newIssueForm=newIssueForm, issueCreation_error=issueCreation)
 		return redirect("/issues?msg=issueCreationSuccess")
@@ -502,11 +678,8 @@ def deleteIssue():
 		return redirect("/login")
 	Username = session["Username"]
 	IssueID = request.args.get("issue")
-	if boatmanager.getOptions()["UniversalIssueEditing"] or boatmanager.getAdmin(Username) != -1:
-		boatmanager.deleteIssue(IssueID)
-		return redirect("/issues")
-	else:
-		return redirect("/forbidden")
+	boatmanager.deleteIssue(IssueID)
+	return redirect("/issues")
 
 @app.route("/markIssueResolved", methods=["GET", "POST"])
 def markIssueResolved():
@@ -515,6 +688,8 @@ def markIssueResolved():
 	Username = session["Username"]
 	IssueID = request.args.get("issue")
 	issue = boatmanager.getIssue(IssueID)
+	if boatmanager.findAdminIndex(Username) == -1 and not boatmanager.getOptions()["UniversalIssueEditing"]:
+		return redirect("/forbidden")
 	boatmanager.editIssue(IssueID, issue.getCreator(), issue.getBoatID(), 
 		issue.getCreationDate(), issue.getDetails(), issue.getFixDate(), issue.getSeverity(), 1)
 	return redirect("/issues")
@@ -542,37 +717,40 @@ def editIssue():
 	for boat in boatmanager.getBoats():
 		boatsList.append([boat.getID(), (boat.getID() + " (" + boat.getName() + ")")])
 
-	editIssueForm = issueDetailsForm()
-	editIssueForm.boat.choices=boatsList
-
-	if editIssueForm.is_submitted():
-		issue = boatmanager.getIssue(IssueID)
-		newBoatID = editIssueForm.BoatID.data
-		newBoatName = boatmanager.getBoat(BoatID).getName()
-		newDetails = issue.getDetails()
-		newFixDate = issue.getFixDate()
-		newSeverity = issue.getSeverity()
-
-		issueEdit = boatmanager.editIssue(IssueID, newBoatID, newCreationDate, newDetails, newFixDate, newSeverity, newResolved)
-		if issueEdit != 1:
-			return render_template("editIssue.html", message=issueEdit, editIssueForm=editIssueForm, IssueID=IssueID, 
-				BoatID=BoatID, BatName=BoatName, CreationDate=CreationDate, Details=Details, FixDate=FixDate, Severity=Severity, Resolved=Resolved)
-		return render_template("editIssue.html", message="Successfully upated values", editBoatForm=editIssueForm, IssueID=IssueID, BoatID=newBoatID, 
-			BatName=newBoatName, CreationDate=CreationDate, Details=newDetails, FixDate=newFixDate, Severity=newSeverity, Resolved=Resolved)
-
 	issue = boatmanager.getIssue(IssueID)
 	BoatID = issue.getBoatID()
 	BoatName = boatmanager.getBoat(BoatID).getName()
+	Creator = issue.getCreator()
 	CreationDate = issue.getCreationDate()
 	Details = issue.getDetails()
 	FixDate = issue.getFixDate()
 	Severity = issue.getSeverity()
 	Resolved = issue.getResolved()
 
+	editIssueForm = issueDetailsForm()
+	editIssueForm.boat.choices=boatsList
+	editIssueForm.boat.default=BoatID
+	editIssueForm.severity.default=Severity
+	editIssueForm.process()
+
+
+	if editIssueForm.is_submitted():
+		issue = boatmanager.getIssue(IssueID)
+		newBoatID = editIssueForm.boat.data
+		newBoatName = boatmanager.getBoat(BoatID).getName()
+		newDetails = editIssueForm.details.data
+		newFixDate = editIssueForm.fixDate.data
+		newSeverity = editIssueForm.severity.data
+
+		issueEdit = boatmanager.editIssue(IssueID, Creator, newBoatID, CreationDate, newDetails, newFixDate, newSeverity, Resolved)
+		if issueEdit != 1:
+			return render_template("editIssue.html", message=issueEdit, editIssueForm=editIssueForm, IssueID=IssueID, BoatID=BoatID, 
+			BatName=BoatName, CreationDate=CreationDate, Details=Details, FixDate=FixDate, Severity=Severity, Resolved=Resolved)
+		return render_template("editIssue.html", message="Successfully upated values", editIssueForm=editIssueForm, IssueID=IssueID, BoatID=newBoatID, 
+			BatName=newBoatName, CreationDate=CreationDate, Details=newDetails, FixDate=newFixDate, Severity=newSeverity, Resolved=Resolved)
+
 	return render_template("editIssue.html", editIssueForm=editIssueForm, IssueID=IssueID, 
 		BoatID=BoatID, BatName=BoatName, CreationDate=CreationDate, Details=Details, FixDate=FixDate, Severity=Severity, Resolved=Resolved)
-
-
 
 
 

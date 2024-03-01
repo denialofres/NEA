@@ -7,18 +7,18 @@
 	<!-- Compiled and minified CSS -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-	<link rel="stylesheet" href= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"> 
-	<link href= "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> 
-	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script> 
-	<script src= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"> </script> 
+	<!-- Compiled and minified JS -->
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script>
 </head>
 
 <body class="container">
+
 	<!-- Compiled and minified JavaScript -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
 	<nav>
 		<div class="nav-wrapper">
-			<a href="#" class="brand-logo">&nbsp; Boat Manager</a>
+			<a href="/myAccount" class="brand-logo">&nbsp; Boat Manager</a>
 			<ul id="nav-mobile" class="right hide-on-med-and-down">
 				<li><a href="boats">Boats</a></li>
 				<li><a href="issues">Issues</a></li>
@@ -28,7 +28,12 @@
 			</ul>
 		</div>
 	</nav>
+
 	<div class="container">
+		<br>
+		<a href="/users?filter=Admins" class="waves-effect waves-green btn">show Admins</a>
+		<a href="/users?filter=Users" class="waves-effect waves-green btn">show Non-Admins</a>
+		<a href="/users?filter=All" class="waves-effect waves-green btn">Show all users</a>
 		<ul class="collection">
 			{% for item in collectionItems %}
 				<li class="collection-item avatar"> 
@@ -39,15 +44,40 @@
 						{{item[3]}} 
 					</p>
 					<div class="secondary-content">
+						<a href="/editUser?account={{item[1]}}"><i class="material-icons green-text">create</i></a>
+						<a href="/deleteAccountModal{{item[1]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a>
+						<br>
 						<a href="/{{item[4]}}User?account={{item[1]}}"><i class="material-icons blue-text">{{item[5]}}</i></a>
-						<a href="/editUser?account={{item[1]}}"><i class="material-icons green-text">create</i></a> <br>
-						<a href="/confirmedDeleteAccount?account={{item[1]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a>
 					</div>
 				</li>
 			{% endfor %}
 		</ul>
-		
+		{% for item in collectionItems %}
+			<div id="deleteAccountModal{{item[1]}}" class="modal">
+				<div class="modal-content">
+					<div class="modal-content">
+					<h4>Are you sure you want to delete this account?</h4>
+					<p style="color:red">This action is not reversible</p>
+					<p>All associated bookings will also be deleted, and all associated issues and boats will be transferred to the system administrator account</p>
+					</div>
+				</div>
+				<div style="display:flex">
+					<div class="modal-footer">
+						<a href="/users" class="modal-close waves-effect waves-green btn-flat">
+							Cancel
+						</a>
+						<a href="/deleteAccount?account={{item[1]}}" class="modal-close waves-effect waves-green btn-flat">
+							Delete Account
+						</a>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
 	</div>
-	
+	<script> 
+		$(document).ready(function () { 
+			$('.modal').modal(); 
+		}) 
+	</script>
 </body>
 </html>

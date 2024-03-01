@@ -3,24 +3,19 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Boats</title>
+	<title>Issues</title>
 	<!-- Compiled and minified CSS -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-	<link rel="stylesheet" href= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"> 
-	<link href= "https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> 
-	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script> 
-	<script src= "https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"> </script> 
+	<!-- Compiled and minified JS -->
+	<script type="text/javascript" src= "https://code.jquery.com/jquery-2.1.1.min.js"> </script>
 </head>
 
 <body class="container">
-	<!-- Compiled and minified JavaScript -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-
-	<!-- set const account to be equal to the account in the query string for use in the account deletion confirmation modal -->
 	<nav>
 		<div class="nav-wrapper">
-			<a href="#" class="brand-logo">&nbsp; Boat Manager</a>
+			<a href="/myAccount" class="brand-logo">&nbsp; Boat Manager</a>
 			<ul id="nav-mobile" class="right hide-on-med-and-down">
 				<li><a href="boats">Boats</a></li>
 				<li><a href="issues">Issues</a></li>
@@ -29,43 +24,92 @@
 				<li><a href="myAccount">My Account</a></li>
 			</ul>
 		</div>
-	</nav>
+	</nav>		
+
 	<div class="container">
+		<!--IssueID, Creator, BoatID, CreationDate, Severity, Details, FixDate, Resolved-->
+		<div class="row">
+			<div class="col s3"></div>
+			<div class="col s6">
+				<form action="" method="POST" class="form-inline">
+					{{ filterIssuesForm.csrf  }}
+					<div class="input-field">
+						{{ filterIssuesForm.minSeverity.label(class="active") }}
+ 						{{ filterIssuesForm.minSeverity(class="browser-default") }}
+					</div>
+
+					<div class="input-field">
+						{{ filterIssuesForm.resolved.label(class="active") }}
+ 						{{ filterIssuesForm.resolved(class="browser-default") }}
+					</div>
+
+					<div>
+						<button name="submit" type="submit" class="btn btn-primary" value="creatBooking">Apply filter</button>
+					</div>
+				</form>				
+				<h5 id="error" style="color: red;">{{bookingCreation_error}}</h5>
+			</div>
+		</div>
+	</div>
+		
+	<div>
 		<h5>{{message}}</h5>
 		<ul class="collection">
 			{% for item in collectionItems %}
 				<li class="collection-item avatar"> 
 					<i class="material-icons circle blue">report</i>
-					<span class="title"><b>{{item[0]}}</b></span>
+					<span class="title"><b>Issue {{item[0]}}</b></span>
 					<p>
 						Boat: {{item[1]}} ({{item[2]}}) <br>
-						Severity: {{item[5]}}/5 <br>
-						Details: {{item[6]}}
+						Severity: {{item[7]}}/5 <br>
+						Details: {{item[8]}}
 					</p>
 					<div class="secondary-content">
 						<a href="/editIssue?issue={{item[0]}}"><i class="material-icons green-text">create</i></a> 
-						<a href="/deleteIssue?issue={{item[0]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a><br>
+						<a href="/deleteIssueModal{{item[0]}}" class="modal-trigger"><i class="material-icons red-text">delete</i></a>
+						<br>
 						<a href="/detailsModalIssue{{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">description</i></a>
-						<a href="/markIssue{{item[10]}}?issue={{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">{{item[9]}}</i></a>
+						<a href="/markIssue{{item[12]}}?issue={{item[0]}}" class="modal-trigger"><i class="material-icons blue-text">{{item[11]}}</i></a>
 					</div>
 				</li>
 			{% endfor %}
 		</ul>
-		{% for issue in collectionItems %}
-			<div id="detailsModalIssue{{issue[0]}}" class="modal">
+		{% for item in collectionItems %}
+			<div id="detailsModalIssue{{item[0]}}" class="modal">
 				<div class="modal-content">
 					<ul class="collection">
 						<!--IssueID, Creator, BoatID, CreationDate, Severity, Details, FixDate, Resolved-->
-						<li class="collection-item">Issue number: {{issue[0]}}</li>
-						<li class="collection-item">BoatID: {{issue[1]}}</li>
-						<li class="collection-item">BoatName: {{issue[2]}}</li>
-						<li class="collection-item">Creator: {{issue[3]}}</li>
-						<li class="collection-item">Created: {{issue[4]}}</li>
-						<li class="collection-item">Severity: {{issue[5]}}/5</li>
-						<li class="collection-item">Details: {{issue[6]}}</li>
-						<li class="collection-item">Estimated fix date: {{issue[7]}}</li>
-						<li class="collection-item">Resolved: {{issue[8]}}</li>
+						<li class="collection-item">Issue number: {{item[0]}}</li>
+						<li class="collection-item">BoatID: {{item[1]}}</li>
+						<li class="collection-item">BoatName: {{item[2]}}</li>
+						<li class="collection-item">BoatType: {{item[3]}}</li>
+						<li class="collection-item">Creator: {{item[4]}} ({{item[5]}})</li>
+						<li class="collection-item">Created: {{item[6]}}</li>
+						<li class="collection-item">Severity: {{item[7]}}/5</li>
+						<li class="collection-item">Details: {{item[8]}}</li>
+						<li class="collection-item">Estimated fix date: {{item[9]}}</li>
+						<li class="collection-item">Resolved: {{item[10]}}</li>
 					</ul>
+				</div>
+			</div>
+		{% endfor %}
+		{% for item in collectionItems %}
+			<div id="deleteIssueModal{{item[0]}}" class="modal">
+				<div class="modal-content">
+					<div class="modal-content">
+					<h4>Are you sure you want to delete this issue?</h4>
+					<p>This action is not reversible</p>
+					</div>
+				</div>
+				<div style="display:flex">
+					<div class="modal-footer">
+						<a href="/issues" class="modal-close waves-effect waves-green btn-flat">
+							Cancel
+						</a>
+						<a href="/deleteIssue?issue={{item[0]}}" class="modal-close waves-effect waves-green btn-flat">
+							Delete Issue
+						</a>
+					</div>
 				</div>
 			</div>
 		{% endfor %}

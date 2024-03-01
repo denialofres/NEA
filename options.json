@@ -2,9 +2,12 @@
 	"dbfile": "datafile.db",
 	"logging": true,
 	"logfile": "log.txt",
-	"secret": "Wonderful",
-	"UniversalBoatEditing": "True",
-	"UniversalIssueEditing": "True",
-	"UniversalBookingEditing": "True",
-	"MaxBookingLength": false
+	"AllowBookings": true,
+	"UniversalBoatEditing": true,
+	"UniversalIssueEditing": true,
+	"UniversalBookingEditing": true,
+	"MaxBookingLength": 300,
+	"sysAdminUsername": "ILoveBoats",
+	"sysAdminDefaultDetails": ["sysAdmin account", "boatclub@domain.tld", "PO6FS0"],
+	"sysAdminDefaultPasswordHash": "25097135218562472208813548436810633832835458712578165064969731183692876820"
 }
